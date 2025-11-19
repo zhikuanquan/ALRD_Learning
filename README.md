@@ -33,7 +33,7 @@ install.packages(c(
   "ggpubr", "grid"
 ))
 ```
-Real-Data Analysis
+## Real-Data Analysis
 
 Place your dataset at:
 
@@ -58,3 +58,37 @@ fit$coef_table_orig   # coefficients on original cm³ scale
 fit$f_1               # partial ITE plot 1
 fit$f_2               # partial ITE plot 2
 ```
+
+## Simulation Study
+
+Run a simulation scenario:
+```r
+
+source("simulation_scenario.R")
+
+result_list <- SIM(
+  ICC_type    = "b",
+  main_effect = "big",
+  data_type   = "lin",
+  n           = 100,
+  K           = 5,
+  N           = 100
+)
+
+```
+Simulation output includes:
+
+- Accuracy of individualized treatment rule
+
+- Spearman correlation with true ITEs
+
+- Average prediction error
+
+- Optimal λ for LASSO and augmented LASSO
+
+
+## Contact
+
+Zhikuan Quan
+PhD Candidate, Biostatistics, UC Davis
+zkquan@ucdavis.edu
