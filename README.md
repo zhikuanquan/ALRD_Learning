@@ -13,12 +13,14 @@ It includes:
 ---
 
 ## File Structure
+```
 /
 ├── real_data_analysis.R # ALRD pipeline for real MIA dataset
 ├── simulation_scenario.R # SIM() + data generation for simulation study
 └── README.md
 
 ---
+```
 
 ## Requirements
 
