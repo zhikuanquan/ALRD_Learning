@@ -8,14 +8,12 @@ _Doubly Robust Estimation of Individualized Treatment Effects in Longitudinal Da
 It includes:
 
 - **Simulation study** evaluating ALRD under multiple data-generating mechanisms  
-- **Real-data analysis** applying ALRD to MIA monkey MRI + cytokine data  
 
 ---
 
 ## File Structure
 ```
 /
-├── real_data_analysis.R # ALRD pipeline for real MIA dataset
 ├── simulation_scenario.R # SIM() + data generation for simulation study
 └── README.md
 
@@ -32,31 +30,6 @@ install.packages(c(
   "mgcv", "gratia", "caret", "MASS", "nlme", "Matrix",
   "ggpubr", "grid"
 ))
-```
-## Real-Data Analysis
-
-Place your dataset at:
-
-```
-DATA/hyp_all.xlsx
-```
-
-Run the ALRD analysis:
-```r
-source("real_data_analysis.R")
-
-fit <- ALRD(
-  subregion      = "B_frontal",   # or "B_prefrontal"
-  response       = "GM",          # or "WM"
-  DATA           = DATA,
-  B              = 2,
-  lambda         = seq(1,100,1),
-  lambda.min_aug = 89
-)
-
-fit$coef_table_orig   # coefficients on original cm³ scale
-fit$f_1               # partial ITE plot 1
-fit$f_2               # partial ITE plot 2
 ```
 
 ## Simulation Study
