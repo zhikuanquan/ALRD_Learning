@@ -33,4 +33,28 @@ install.packages(c(
   "ggpubr", "grid"
 ))
 ```
+Real-Data Analysis
 
+Place your dataset at:
+
+```
+DATA/hyp_all.xlsx
+```
+
+Run the ALRD analysis:
+```r
+source("real_data_analysis.R")
+
+fit <- ALRD(
+  subregion      = "B_frontal",   # or "B_prefrontal"
+  response       = "GM",          # or "WM"
+  DATA           = DATA,
+  B              = 2,
+  lambda         = seq(1,100,1),
+  lambda.min_aug = 89
+)
+
+fit$coef_table_orig   # coefficients on original cm³ scale
+fit$f_1               # partial ITE plot 1
+fit$f_2               # partial ITE plot 2
+```
