@@ -140,24 +140,76 @@ SIM <- function(ICC_type, main_effect, data_type,
   form <- paste("Y~I(group/2)+time+time:I(group/2)+",X.name,"+",AX.name,sep="") ## full linear regression
   form_int <- paste("N_Y~-1+I(group/2)+time:I(group/2)+",AX.name,sep="") ## augmentation-type new method
   
-  ### Data Augmentation
+  ### Data Augmentation using glmmLasso main-effect model only
+  
   data$ID <- as.factor(data$ID)
-  data_1 <- data[data$group==1,]
-  cv_model_1 <- cv.glmnet(x=as.matrix(cbind(1,data_1[,4:(p_con+p_bin+4)])), y=data_1$Y, alpha = 1)
-  model_1 <- glmnet(x=as.matrix(cbind(1,data_1[,4:(p_con+p_bin+4)])), y=data_1$Y, alpha = 1, lambda = cv_model_1$lambda.min)
-  Y1 <- 0.5*(as.matrix(cbind(1,data[,4:(p_con+p_bin+4)]))%*%as.matrix(model_1$beta,ncol=1))
   
-  data_0 <- data[data$group==-1,]
-  cv_model_0 <- cv.glmnet(x=as.matrix(cbind(1,data_0[,4:(p_con+p_bin+4)])), y=data_0$Y, alpha = 1)
-  model_0 <- glmnet(x=as.matrix(cbind(1,data_0[,4:(p_con+p_bin+4)])), y=data_0$Y, alpha = 1, lambda = cv_model_0$lambda.min)
-  Y0 <- 0.5*(as.matrix(cbind(1,data[,4:(p_con+p_bin+4)]))%*%as.matrix(model_0$beta,ncol=1))
+  # Main-effect model: no treatment, no treatment interaction
+  form_aug <- paste(
+    "Y ~ time +", X.name,
+    sep = ""
+  )
   
-  data <- cbind(data,Y1,Y0)
-  colnames(data)[(p_con+p_bin+4+1):(p_con+p_bin+4+2)] <- c('Y1','Y0')
+  ### Choose lambda for augmentation by subject-level 5-fold CV
+  B <- 5
+  flds_aug <- createFolds(unique(data$ID), k = B, list = TRUE, returnTrain = FALSE)
+  
+  MSE_aug <- matrix(NA, length(lambda), B)
+  
+  for (i in 1:length(lambda)) {
+    for (b in 1:B) {
+      
+      sel_ind <- which(data$ID %in% flds_aug[[b]])
+      
+      data_valid <- data[sel_ind, ]
+      data_train <- data[-sel_ind, ]
+      
+      data_train$ID <- droplevels(data_train$ID)
+      data_valid$ID <- droplevels(data_valid$ID)
+      
+      try({
+        fit_aug_cv <- glmmLasso(
+          fix = as.formula(form_aug),
+          rnd = list(ID = ~1),
+          lambda = lambda[i],
+          data = data_train
+        )
+        
+        pred_valid <- predict(fit_aug_cv, newdata = data_valid)
+        MSE_aug[i, b] <- mean((data_valid$Y - pred_valid)^2)
+      }, silent = TRUE)
+    }
+  }
+  
+  MSE_aug_mean <- apply(MSE_aug, 1, function(x) mean(x, na.rm = TRUE))
+  MSE_aug_mean[apply(is.na(MSE_aug), 1, mean) > 0.8] <- NA
+  
+  lambda.min_aug <- min(
+    lambda[MSE_aug_mean == min(MSE_aug_mean, na.rm = TRUE)],
+    na.rm = TRUE
+  )
+  
+  ### Fit final main-effect augmentation model
+  fit_aug <- glmmLasso(
+    fix = as.formula(form_aug),
+    rnd = list(ID = ~1),
+    lambda = lambda.min_aug,
+    data = data
+  )
+  
+  ### Predicted main effect
+  M_hat <- as.numeric(predict(fit_aug, newdata = data))
+  
+  data <- cbind(data, M_hat)
+  colnames(data)[p_con + p_bin + 5] <- "M_hat"
   
   data_int <- data %>%
     group_by(time) %>%
-    mutate(C_Y = Y-mean(Y), N_Y = Y-mean(Y1+Y0))
+    mutate(
+      C_Y = Y - mean(Y),
+      N_Y = Y - M_hat
+    )
+  
   data_int <- as.data.frame(data_int)
   
   ### Creat 5-folds
